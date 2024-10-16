@@ -6,6 +6,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 Check out the live demo of the MacOS Simulator [here](https://reactos.kohan.com.tr).
 
+The login password is : 1234
 ## Available Scripts
 
 In the project directory, you can run:
