@@ -16,7 +16,7 @@ function VSCode({ closeWindow }) {
   return (
       <VSCodeContainer>
         <iframe
-          src="https://github1s.com/mrkohan/macos=simulator"
+          src="https://github1s.com/mrkohan/macos-simulator"
           title="VSCode"
         />
       </VSCodeContainer>
