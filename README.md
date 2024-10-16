@@ -1,5 +1,4 @@
-# Welcome to MacOS Simulator Web App 
-# Getting Started with Create React App
+# Getting Started with MacOS Simulator Web App 
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
