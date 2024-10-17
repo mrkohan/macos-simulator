@@ -19,7 +19,7 @@ const shakeAnimation = keyframes`
 const LoginContainer = styled.div`
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   width: 100vw;
   height: 100vh;
@@ -28,6 +28,13 @@ const LoginContainer = styled.div`
   background-position: center;
   position: relative;
   color: white;
+`;
+
+const TimeSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: calc(10% - 80px);
 `;
 
 const TimeDisplay = styled.div`
@@ -41,8 +48,10 @@ const DateDisplay = styled.div`
 `;
 
 const UserProfile = styled.div`
-  position: absolute;
-  bottom: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: calc(10% - 80px);
   text-align: center;
 `;
 
@@ -90,9 +99,8 @@ function LoginPage({ onLogin }) {
     if (password === '1234') { // Simulate login with a simple password
       onLogin(); // Trigger login success
     } else {
-        setShake(true); // Trigger the shake animation
+      setShake(true); // Trigger the shake animation
       setTimeout(() => setShake(false), 500); // Reset shake after animation
-
     }
   };
 
@@ -117,8 +125,10 @@ function LoginPage({ onLogin }) {
     <>
     <GlobalStyle />
     <LoginContainer>
-      <DateDisplay>{formattedDate}</DateDisplay>
-      <TimeDisplay>{formattedTime}</TimeDisplay>
+      <TimeSection>
+        <TimeDisplay>{formattedTime}</TimeDisplay>
+        <DateDisplay>{formattedDate}</DateDisplay>
+      </TimeSection>
       
       <UserProfile>
         <UserImage src="/avatar.jpg" alt="User" />
