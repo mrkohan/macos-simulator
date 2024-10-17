@@ -1,7 +1,7 @@
 import React, { useState , useEffect } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { Modal } from 'antd';
-import { FaApple, FaWifi, FaBatteryFull } from 'react-icons/fa';
+import { FaApple, FaWifi, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaBatteryEmpty } from 'react-icons/fa';
 import AboutThisMacContent from './AboutThisMacContent'; 
 
 const GlobalStyle = createGlobalStyle`
@@ -83,6 +83,8 @@ const getFormattedDate = () => {
 
 function MenuBar() {
   const [dateTime, setDateTime] = useState(getFormattedDate());
+  const [batteryLevel, setBatteryLevel] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const toggleDropdown = () => {
@@ -106,9 +108,36 @@ function MenuBar() {
       setDateTime(getFormattedDate());
     }, 60000); // 60000 ms = 1 minute
 
+     // Battery status
+     if ('getBattery' in navigator) {
+      navigator.getBattery().then(battery => {
+        setBatteryLevel(battery.level);
+        battery.onlevelchange = () => setBatteryLevel(battery.level);
+      });
+    }
+
+     // Listen for online/offline events
+    const handleOnlineStatus = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+
+
     // Cleanup interval on component unmount
-    return () => clearInterval(intervalId);
+ return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+    };
   }, []);
+
+    // Determine battery icon based on battery level
+    const getBatteryIcon = () => {
+      if (batteryLevel === null) return <FaBatteryEmpty size={14} />;
+      if (batteryLevel >= 0.75) return <FaBatteryFull size={14} />;
+      if (batteryLevel >= 0.5) return <FaBatteryThreeQuarters size={14} />;
+      if (batteryLevel >= 0.25) return <FaBatteryHalf size={14} />;
+      return <FaBatteryQuarter size={14} />;
+    };
 
   return (
     <>
@@ -143,8 +172,10 @@ function MenuBar() {
 
 
       <RightIcons>
-        <FaWifi size={14} />
-        <FaBatteryFull size={14} />
+        <FaWifi size={14} color={isOnline ? 'white' : 'gray'} />
+        <div title={batteryLevel !== null ? `Battery Level: ${Math.round(batteryLevel * 100)}%` : 'Battery Status Unknown'}>
+            {getBatteryIcon()}
+          </div>
         <MenuItem>{dateTime}</MenuItem>
       </RightIcons>
 
