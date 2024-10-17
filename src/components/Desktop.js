@@ -15,13 +15,15 @@ const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
     font-family:Arial;
+      cursor: url(/cursor.svg), auto;
+
   }
 `;
 
 const DesktopContainer = styled.div`
   width: 100vw;
   height: 100vh;
-  background-image: url('/back.jpg');
+  background-image: url('/back3.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -41,7 +43,6 @@ const ContextMenu = styled.div`
 const MenuItem = styled.div`
   padding: 5px 20px;
   font-size: 13px;
-  cursor: pointer;
   border-radius: 4px;
 
   &:hover {
@@ -51,7 +52,6 @@ const MenuItem = styled.div`
   &.divider {
     border-top: 1px solid #d1d1d1;
     margin: 8px 0;
-    cursor:default;
   }
      &:hover {
     background-color: #fff;

@@ -8,6 +8,7 @@ const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
     padding: 0;
+    
   }
 `;
 
@@ -43,8 +44,9 @@ const RightIcons = styled.div`
 `;
 
 const MenuItem = styled.div`
-  font-size: 12px;
-  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 .5rem;
 `;
 
 const DropdownMenu = styled.ul`
@@ -63,7 +65,6 @@ const DropdownMenu = styled.ul`
 
   li {
     padding: 5px 10px;
-    cursor: pointer;
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
@@ -144,7 +145,7 @@ function MenuBar() {
     <GlobalStyle />
     <MenuBarContainer>
       <MenuItems>
-      <FaApple size={14} onClick={toggleDropdown} style={{ cursor: 'pointer' }} />
+      <FaApple size={16} onClick={toggleDropdown} />
         <MenuItem>Finder</MenuItem>
         <MenuItem>File</MenuItem>
         <MenuItem>Edit</MenuItem>
