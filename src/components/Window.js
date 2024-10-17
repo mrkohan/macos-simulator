@@ -15,6 +15,7 @@ const WindowContainer = styled.div`
   flex-direction: column;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
   transition: width 0.2s, height 0.2s;
+  z-index:999;
 `;
 
 const TitleBar = styled.div`

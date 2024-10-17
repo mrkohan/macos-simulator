@@ -4,7 +4,7 @@ import styled from 'styled-components';
 const IconContainer = styled.div`
   position: absolute;
   top: ${(props) => props.styletop};
-  left: ${(props) => props.styleleft};
+  right: ${(props) => props.styleleft};
   text-align: center;
   margin-top: 20px;
   color: white;
