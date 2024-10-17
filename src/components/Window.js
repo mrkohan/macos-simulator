@@ -2,20 +2,23 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Draggable from 'react-draggable';
 
+
 const WindowContainer = styled.div`
   width: ${(props) => props.width}px;
   height: ${(props) => props.height}px;
   background-color: #e0e0e0;
-  border-radius: 10px;
+  border-radius: ${(props) => (props.isMaximized ? '0' : '10px')};
   overflow: hidden;
-  position: absolute;
-  top: 100px;
-  left: 100px;
+  position: ${(props) => (props.isMaximized ? 'fixed' : 'absolute')};
+  top: ${(props) => (props.isMaximized ? '27px' : '100px')};
+  left: ${(props) => (props.isMaximized ? '0' : '100px')};
+  right: ${(props) => (props.isMaximized ? '0' : 'unset')};
+  bottom: ${(props) => (props.isMaximized ? '0' : 'unset')};
   display: ${(props) => (props.minimized ? 'none' : 'flex')};
   flex-direction: column;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  transition: width 0.2s, height 0.2s;
-  z-index:999;
+  transition: ${(props) => (props.isMaximized ? 'none' : 'width 0.2s, height 0.2s')};
+  z-index: 1001;
 `;
 
 const TitleBar = styled.div`
@@ -26,13 +29,13 @@ const TitleBar = styled.div`
   padding: 0 20px;
   cursor: move;
   user-select: none;
-  justify-content: flex-start; /* Align content to the left */
+  justify-content: space-between;
 `;
 
 const WindowControls = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px; /* Space between buttons */
+  gap: 10px;
 `;
 
 const ControlButton = styled.div`
@@ -65,10 +68,12 @@ const ResizeHandle = styled.div`
 `;
 
 function Window({ appName, closeWindow, content }) {
-  // const [isMaximized, setIsMaximized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 1024, height: 500 });
-  const [isResizing, setIsResizing] = useState(false); // Track resizing state
+  const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ x: 100, y: 100 }); // Initial drag position
+
 
   // Toggle minimize
   const handleMinimize = () => {
@@ -76,15 +81,14 @@ function Window({ appName, closeWindow, content }) {
   };
 
   // Toggle maximize
-  // const handleMaximize = () => {
-  //   if (isMaximized) {
-  //     setDimensions({ width: 600, height: 400 });
-  //     setIsMaximized(false);
-  //   } else {
-  //     setDimensions({ width: window.innerWidth, height: window.innerHeight });
-  //     setIsMaximized(true);
-  //   }
-  // };
+  const handleMaximize = () => {
+    if (isMaximized) {
+      setDragPosition(dragPosition);
+    } else {
+      setDragPosition({ x: 0, y: 0 });
+    }
+    setIsMaximized(!isMaximized);
+  };
 
   // Handle close window
   const handleClose = () => {
@@ -97,7 +101,7 @@ function Window({ appName, closeWindow, content }) {
     e.preventDefault();
   };
 
-  // Handle resizing
+ // Handle resizing
   const handleResize = (e) => {
     if (isResizing) {
       const newWidth = e.clientX - e.target.offsetParent.offsetLeft;
@@ -123,30 +127,34 @@ function Window({ appName, closeWindow, content }) {
       document.removeEventListener('mouseup', stopResize);
     }
 
-    // Cleanup event listeners on unmount
     return () => {
       document.removeEventListener('mousemove', handleResize);
       document.removeEventListener('mouseup', stopResize);
     };
-  }, [isResizing]); // Effect will re-run when isResizing state changes
+  }, [isResizing]);
 
   return (
-    <Draggable handle=".title-bar" bounds="parent">
-      <WindowContainer
-        width={dimensions.width}
-        height={dimensions.height}
+    <Draggable
+    handle=".title-bar"
+    position={isMaximized ? { x: 0, y: 0 } : dragPosition}
+    onStop={(e, data) => setDragPosition({ x: data.x, y: data.y })}
+    disabled={isMaximized}>
+       <WindowContainer
+        width={isMaximized ? window.innerWidth : dimensions.width}
+        height={isMaximized ? window.innerHeight : dimensions.height}
         minimized={isMinimized}
+        isMaximized={isMaximized}
       >
         <TitleBar className="title-bar">
           <WindowControls>
             <ControlButton color="red" onClick={handleClose} /> {/* Close */}
             <ControlButton color="yellow" onClick={handleMinimize} /> {/* Minimize */}
-            <ControlButton color="green" /> {/* Maximize */}
+            <ControlButton color="green" onClick={handleMaximize} /> {/* Maximize */}
           </WindowControls>
           <TitleText>{appName}</TitleText>
         </TitleBar>
         <ContentArea>{content}</ContentArea>
-        <ResizeHandle onMouseDown={startResize} /> {/* Resize handle starts resizing */}
+        {!isMaximized && <ResizeHandle onMouseDown={startResize} />} {/* Resize handle starts resizing */}
       </WindowContainer>
     </Draggable>
   );
