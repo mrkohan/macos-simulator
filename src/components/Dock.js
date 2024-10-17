@@ -35,19 +35,39 @@ function Dock() {
   return (
     <DockContainer>
       <DockInner>
-        <DockIcon>
-          <FaRegStickyNote size={40} color="white" />
+      <DockIcon>
+        <img src="/icons/finder.png" alt="Finder" style={{ width: 40, height: 40 }} />
         </DockIcon>
         <DockIcon>
-          <FaSafari size={40} color="white" />
+        <img src="/icons/maps.png" alt="Maps" style={{ width: 40, height: 40 }} />
         </DockIcon>
         <DockIcon>
-          <FaEnvelope size={40} color="white" />
+        <img src="/icons/calendar.png" alt="Calendar" style={{ width: 40, height: 40 }} />
         </DockIcon>
         <DockIcon>
-          <FaMusic size={40} color="white" />
+        <img src="/icons/contacts.png" alt="Contacts" style={{ width: 40, height: 40 }} />
         </DockIcon>
-        {/* Add more icons here */}
+        <DockIcon>
+        <img src="/icons/message.png" alt="iMessage" style={{ width: 40, height: 40 }} />
+        </DockIcon>
+        <DockIcon>
+        <img src="/icons/safari.png" alt="Safari" style={{ width: 40, height: 40 }} />
+        </DockIcon>
+        <DockIcon>
+        <img src="/icons/facetime.png" alt="Facetime" style={{ width: 40, height: 40 }} />
+        </DockIcon>
+        <DockIcon>
+        <img src="/icons/vscode.png" alt="VSCode" style={{ width: 40, height: 40 }} />
+        </DockIcon>
+        <DockIcon>
+        <img src="/icons/chrome.png" alt="Chrome" style={{ width: 40, height: 40 }} />
+        </DockIcon>
+        <DockIcon>
+        <img src="/icons/spotify.png" alt="Spotify" style={{ width: 40, height: 40 }} />
+        </DockIcon>
+        <DockIcon>
+        <img src="/icons/bin.png" alt="Bin" style={{ width: 40, height: 40 }} />
+        </DockIcon>
       </DockInner>
     </DockContainer>
   );

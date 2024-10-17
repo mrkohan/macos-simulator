@@ -21,7 +21,7 @@ const GlobalStyle = createGlobalStyle`
 const DesktopContainer = styled.div`
   width: 100vw;
   height: 100vh;
-  background-image: url('/back.png');
+  background-image: url('/back.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -51,6 +51,10 @@ const MenuItem = styled.div`
   &.divider {
     border-top: 1px solid #d1d1d1;
     margin: 8px 0;
+    cursor:default;
+  }
+     &:hover {
+    background-color: #fff;
   }
 `;
 

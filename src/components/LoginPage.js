@@ -23,7 +23,7 @@ const LoginContainer = styled.div`
   align-items: center;
   width: 100vw;
   height: 100vh;
-  background-image: url('/back.png');
+  background-image: url('/back2.png');
   background-size: cover;
   background-position: center;
   position: relative;

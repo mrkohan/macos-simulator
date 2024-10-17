@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaCode, FaRegStickyNote, FaSafari, FaSearch, FaTerminal } from 'react-icons/fa';
 
 const IconContainer = styled.div`
   position: absolute;
@@ -47,17 +46,17 @@ function DesktopIcon({ appName, openWindow, position }) {
 function renderIcon(appName) {
   switch (appName) {
     case 'Finder':
-      return <FaSearch size={40} color="white" />;
+      return <img src="/icons/finder.png" alt="VSCode" style={{ width: 40, height: 40 }} />;
     case 'Notes':
-      return <FaRegStickyNote size={40} color="white" />;
+      return <img src="/icons/note.png" alt="VSCode" style={{ width: 40, height: 40 }} />;
     case 'Safari':
-      return <FaSafari size={40} color="white" />;
+      return <img src="/icons/safari.png" alt="VSCode" style={{ width: 40, height: 40 }} />;
     case 'Terminal':
-      return <FaTerminal size={40} color="white" />;
+      return <img src="/icons/terminal.png" alt="VSCode" style={{ width: 40, height: 40 }} />;
     case 'VSCode':
-      return <FaCode size={40} color="white" />;
+      return <img src="/icons/vscode.png" alt="VSCode" style={{ width: 40, height: 40 }} />;
     default:
-      return <FaRegStickyNote size={40} color="white" />;
+      return <img src="/icons/finder.png" alt="VSCode" style={{ width: 40, height: 40 }} />;
   }
 }
 
