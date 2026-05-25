@@ -1,198 +1,449 @@
-import React, { useState , useEffect } from 'react';
-import styled, { createGlobalStyle } from 'styled-components';
-import { Modal } from 'antd';
-import { FaApple, FaWifi, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaBatteryEmpty } from 'react-icons/fa';
-import AboutThisMacContent from './AboutThisMacContent'; 
-
-const GlobalStyle = createGlobalStyle`
-  body {
-    margin: 0;
-    padding: 0;
-    
-  }
-`;
+import React, { useState, useEffect, useCallback } from 'react';
+import styled from 'styled-components';
+import { Modal, message } from 'antd';
+import {
+  FaApple,
+  FaWifi,
+  FaBatteryFull,
+  FaBatteryQuarter,
+  FaBatteryHalf,
+  FaBatteryThreeQuarters,
+  FaBatteryEmpty,
+} from 'react-icons/fa';
+import AboutThisMacContent from './AboutThisMacContent';
 
 const MenuBarContainer = styled.div`
   width: 100%;
-  height: 24px;
-  background-color: rgba(255, 255, 255, 0.1);
+  height: 27px;
+  background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(20px);
   position: fixed;
   top: 0;
+  left: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 2px;
-  left:0;
+  padding: 0 10px;
   color: white;
-  z-index: 1000;
-  font-size:10px;
+  z-index: 3000;
+  font-size: 13px;
+  user-select: none;
 `;
 
 const MenuItems = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  
+  gap: 2px;
+  position: relative;
 `;
 
 const RightIcons = styled.div`
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-right: 10px;
+  gap: 12px;
 `;
 
-const MenuItem = styled.div`
-  font-size: 13px;
+const MenuLabel = styled.div`
+  position: relative;
   font-weight: 500;
-  padding: 0 .5rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+`;
+
+const AppleButton = styled.button`
+  display: flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
 `;
 
 const DropdownMenu = styled.ul`
   position: absolute;
-  top: 24px;
+  top: calc(100% + 4px);
   left: 0;
-  background-color: rgba(0, 0, 0, 0.9);
+  background: rgba(40, 40, 40, 0.95);
+  backdrop-filter: blur(12px);
   color: white;
   list-style: none;
-  padding: 10px;
+  padding: 6px 0;
   margin: 0;
-  width: 200px;
-  border-radius: 4px;
-  display: ${(props) => (props.show ? 'block' : 'none')};
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.4);
+  min-width: 220px;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 6000;
 
   li {
-    padding: 5px 10px;
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
 
-  li.divider {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    margin: 5px 0;
+    &:hover:not(.disabled) {
+      background: #007aff;
+    }
+
+    &.disabled {
+      color: rgba(255, 255, 255, 0.35);
+      cursor: default;
+    }
+
+    &.divider {
+      height: 0;
+      padding: 0;
+      margin: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      pointer-events: none;
+    }
   }
 `;
 
 const getFormattedDate = () => {
   const now = new Date();
-  const options = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "numeric", hour12: true };
-  return now.toLocaleString("en-US", options);
+  return now.toLocaleString('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true,
+  });
 };
 
-function MenuBar() {
+function MenuBar({
+  focusedApp,
+  windows = [],
+  openWindow,
+  closeWindow,
+  restoreAllWindows,
+  minimizeAllWindows,
+  minimizeOthers,
+  cycleFocus,
+  onMinimizeFocused,
+  onZoomFocused,
+  onLogOut,
+}) {
   const [dateTime, setDateTime] = useState(getFormattedDate());
   const [batteryLevel, setBatteryLevel] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const toggleDropdown = () => {
-    setShowDropdown(!showDropdown);
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
+
+  const closeMenus = useCallback(() => setActiveMenu(null), []);
+
+  const toggleMenu = (id) => {
+    setActiveMenu((prev) => (prev === id ? null : id));
   };
 
-  const showAboutThisMacModal = () => {
-    setIsModalVisible(true);
+  const visibleWindowCount = windows.filter((w) => !w.minimized).length;
+
+  const requireFocus = (fn) => {
+    if (!focusedApp) {
+      message.info('No window selected');
+      return;
+    }
+    fn();
   };
 
-  const handleOk = () => {
-    setIsModalVisible(false);
+  const handleMenuAction = (action) => {
+    switch (action) {
+      case 'about-mac':
+        setAboutOpen(true);
+        break;
+      case 'about-finder':
+        setAboutOpen(true);
+        break;
+      case 'open-finder':
+        openWindow('Finder');
+        break;
+      case 'open-safari':
+        openWindow('Safari');
+        break;
+      case 'open-bin':
+        openWindow('Bin');
+        break;
+      case 'close-window':
+        requireFocus(() => closeWindow(focusedApp));
+        break;
+      case 'force-quit':
+        requireFocus(() => {
+          closeWindow(focusedApp);
+          message.success(`${focusedApp} force quit`);
+        });
+        break;
+      case 'minimize-window':
+        requireFocus(() => onMinimizeFocused?.());
+        break;
+      case 'zoom-window':
+        requireFocus(() => onZoomFocused?.());
+        break;
+      case 'hide-others':
+        minimizeOthers?.();
+        message.success('Other windows hidden');
+        break;
+      case 'show-all':
+        restoreAllWindows?.();
+        message.success('All windows shown');
+        break;
+      case 'cycle-windows':
+        cycleFocus?.();
+        break;
+      case 'copy':
+        navigator.clipboard?.writeText('Copied from macOS Simulator');
+        message.success('Copied to clipboard');
+        break;
+      case 'paste':
+        navigator.clipboard?.readText?.().then((text) => {
+          message.success(text ? `Paste: ${text.slice(0, 40)}…` : 'Clipboard empty');
+        });
+        break;
+      case 'fullscreen':
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen?.().catch(() => {
+            message.warning('Fullscreen not supported');
+          });
+        }
+        break;
+      case 'reload':
+        window.location.reload();
+        break;
+      case 'sleep':
+        minimizeAllWindows?.();
+        message.info('Sleep — all windows minimized');
+        break;
+      case 'logout':
+      case 'lock':
+        onLogOut?.();
+        break;
+      case 'restart':
+        Modal.confirm({
+          title: 'Restart?',
+          content: 'The simulator will reload.',
+          onOk: () => window.location.reload(),
+        });
+        break;
+      case 'shutdown':
+        Modal.confirm({
+          title: 'Shut Down?',
+          onOk: () => onLogOut?.(),
+        });
+        break;
+      default:
+        message.info('Not available in simulator');
+    }
+    closeMenus();
   };
 
-  const handleCancel = () => {
-    setIsModalVisible(false);
-  };
+  const appleItems = [
+    { label: 'About This Mac', action: 'about-mac' },
+    { divider: true },
+    { label: 'System Preferences…', action: 'default' },
+    { label: 'App Store…', action: 'open-safari' },
+    { divider: true },
+    { label: 'Force Quit…', action: 'force-quit', disabled: !focusedApp },
+    { divider: true },
+    { label: 'Sleep', action: 'sleep' },
+    { label: 'Restart…', action: 'restart' },
+    { label: 'Shut Down…', action: 'shutdown' },
+    { divider: true },
+    { label: 'Lock Screen', action: 'lock' },
+    { label: 'Log Out Reza…', action: 'logout' },
+  ];
+
+  const finderItems = [
+    { label: 'About Finder', action: 'about-finder' },
+    { label: 'Preferences…', action: 'default' },
+    { divider: true },
+    { label: 'Empty Bin…', action: 'open-bin' },
+    { divider: true },
+    { label: 'Hide Finder', action: 'minimize-window', disabled: focusedApp !== 'Finder' },
+    { label: 'Hide Others', action: 'hide-others' },
+    { label: 'Show All', action: 'show-all' },
+    { divider: true },
+    { label: 'Quit Finder', action: 'close-window', disabled: focusedApp !== 'Finder' },
+  ];
+
+  const fileItems = [
+    { label: 'New Finder Window', action: 'open-finder' },
+    { label: 'New Folder', action: 'default' },
+    { divider: true },
+    { label: 'Close Window', action: 'close-window', disabled: !focusedApp },
+    { label: 'Get Info', action: 'default' },
+  ];
+
+  const editItems = [
+    { label: 'Undo', action: 'default', disabled: true },
+    { divider: true },
+    { label: 'Cut', action: 'default', disabled: true },
+    { label: 'Copy', action: 'copy' },
+    { label: 'Paste', action: 'paste' },
+    { label: 'Select All', action: 'default' },
+  ];
+
+  const viewItems = [
+    { label: 'Enter Full Screen', action: 'fullscreen' },
+    { label: 'Zoom In', action: 'zoom-window', disabled: !focusedApp },
+    { label: 'Zoom Out', action: 'minimize-window', disabled: !focusedApp },
+  ];
+
+  const goItems = [
+    { label: 'All Applications', action: 'open-finder' },
+    { label: 'Computer', action: 'open-finder' },
+    { label: 'Desktop', action: 'open-finder' },
+  ];
+
+  const windowItems = [
+    { label: 'Minimize', action: 'minimize-window', disabled: !focusedApp },
+    { label: 'Zoom', action: 'zoom-window', disabled: !focusedApp },
+    { divider: true },
+    { label: 'Bring All to Front', action: 'show-all' },
+    { label: 'Cycle Through Windows', action: 'cycle-windows', disabled: visibleWindowCount < 2 },
+  ];
+
+  const helpItems = [
+    { label: 'Search Help', action: 'open-safari' },
+    { label: 'Keyboard Shortcuts', action: 'default' },
+  ];
+
+  const menus = [
+    { id: 'finder', label: focusedApp || 'Finder', items: finderItems },
+    { id: 'file', label: 'File', items: fileItems },
+    { id: 'edit', label: 'Edit', items: editItems },
+    { id: 'view', label: 'View', items: viewItems },
+    { id: 'go', label: 'Go', items: goItems },
+    { id: 'window', label: 'Window', items: windowItems },
+    { id: 'help', label: 'Help', items: helpItems },
+  ];
+
   useEffect(() => {
-    // Update the time every minute
-    const intervalId = setInterval(() => {
-      setDateTime(getFormattedDate());
-    }, 60000); // 60000 ms = 1 minute
-
-     // Battery status
-     if ('getBattery' in navigator) {
-      navigator.getBattery().then(battery => {
+    const tick = setInterval(() => setDateTime(getFormattedDate()), 1000);
+    if ('getBattery' in navigator) {
+      navigator.getBattery().then((battery) => {
         setBatteryLevel(battery.level);
         battery.onlevelchange = () => setBatteryLevel(battery.level);
       });
     }
+    const onOnline = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOnline);
 
-     // Listen for online/offline events
-    const handleOnlineStatus = () => setIsOnline(navigator.onLine);
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
+    const onDocClick = () => closeMenus();
+    document.addEventListener('click', onDocClick);
 
-
-    // Cleanup interval on component unmount
- return () => {
-      clearInterval(intervalId);
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
+    return () => {
+      clearInterval(tick);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOnline);
+      document.removeEventListener('click', onDocClick);
     };
-  }, []);
+  }, [closeMenus]);
 
-    // Determine battery icon based on battery level
-    const getBatteryIcon = () => {
-      if (batteryLevel === null) return <FaBatteryEmpty size={14} />;
-      if (batteryLevel >= 0.75) return <FaBatteryFull size={14} />;
-      if (batteryLevel >= 0.5) return <FaBatteryThreeQuarters size={14} />;
-      if (batteryLevel >= 0.25) return <FaBatteryHalf size={14} />;
-      return <FaBatteryQuarter size={14} />;
-    };
+  const getBatteryIcon = () => {
+    if (batteryLevel === null) return <FaBatteryEmpty size={14} />;
+    if (batteryLevel >= 0.75) return <FaBatteryFull size={14} />;
+    if (batteryLevel >= 0.5) return <FaBatteryThreeQuarters size={14} />;
+    if (batteryLevel >= 0.25) return <FaBatteryHalf size={14} />;
+    return <FaBatteryQuarter size={14} />;
+  };
+
+  const renderDropdown = (items) => (
+    <DropdownMenu onClick={(e) => e.stopPropagation()}>
+      {items.map((item, i) =>
+        item.divider ? (
+          <li key={`d-${i}`} className="divider" />
+        ) : (
+          <li
+            key={item.label}
+            className={item.disabled ? 'disabled' : ''}
+            onClick={() => !item.disabled && handleMenuAction(item.action)}
+          >
+            {item.label}
+          </li>
+        )
+      )}
+    </DropdownMenu>
+  );
 
   return (
     <>
-    <GlobalStyle />
-    <MenuBarContainer>
-      <MenuItems>
-      <FaApple size={16} onClick={toggleDropdown} />
-        <MenuItem>Finder</MenuItem>
-        <MenuItem>File</MenuItem>
-        <MenuItem>Edit</MenuItem>
-        <MenuItem>View</MenuItem>
-        <MenuItem>Go</MenuItem>
-        <MenuItem>Window</MenuItem>
-        <MenuItem>Help</MenuItem>
-      </MenuItems>
+      <MenuBarContainer onClick={(e) => e.stopPropagation()}>
+        <MenuItems>
+          <AppleButton
+            type="button"
+            aria-label="Apple menu"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleMenu('apple');
+            }}
+          >
+            <FaApple size={15} />
+          </AppleButton>
+          {activeMenu === 'apple' && (
+            <DropdownMenu
+              style={{ left: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {appleItems.map((item, i) =>
+                item.divider ? (
+                  <li key={`a-${i}`} className="divider" />
+                ) : (
+                  <li
+                    key={item.label}
+                    className={item.disabled ? 'disabled' : ''}
+                    onClick={() => !item.disabled && handleMenuAction(item.action)}
+                  >
+                    {item.label}
+                  </li>
+                )
+              )}
+            </DropdownMenu>
+          )}
 
-        {/* Dropdown Menu */}
-        <DropdownMenu show={showDropdown}>
-        <li onClick={showAboutThisMacModal}>About This Mac</li>
-        <li>System Preferences...</li>
-        <li>App Store...</li>
-        <li className="divider"></li>
-        <li>Force Quit Finder</li>
-        <li className="divider"></li>
-        <li>Sleep</li>
-        <li>Restart...</li>
-        <li>Shut Down...</li>
-        <li className="divider"></li>
-        <li>Lock Screen</li>
-        <li>Log Out</li>
-      </DropdownMenu>
+          {menus.map((menu) => (
+            <MenuLabel
+              key={menu.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMenu(menu.id);
+              }}
+            >
+              {menu.label}
+              {activeMenu === menu.id && renderDropdown(menu.items)}
+            </MenuLabel>
+          ))}
+        </MenuItems>
 
-
-      <RightIcons>
-        <FaWifi size={14} color={isOnline ? 'white' : 'gray'} />
-        <div title={batteryLevel !== null ? `Battery Level: ${Math.round(batteryLevel * 100)}%` : 'Battery Status Unknown'}>
+        <RightIcons>
+          <FaWifi size={14} color={isOnline ? 'white' : 'gray'} title={isOnline ? 'Online' : 'Offline'} />
+          <div title={batteryLevel != null ? `${Math.round(batteryLevel * 100)}%` : 'Battery'}>
             {getBatteryIcon()}
           </div>
-        <MenuItem>{dateTime}</MenuItem>
-      </RightIcons>
+          <span>{dateTime}</span>
+        </RightIcons>
+      </MenuBarContainer>
 
-       {/* About This Mac Modal */}
-       <Modal
+      <Modal
         title="About This Mac"
-        open={isModalVisible}
-        onOk={handleOk}
-        onCancel={handleCancel}
+        open={aboutOpen}
+        onCancel={() => setAboutOpen(false)}
         footer={null}
       >
         <AboutThisMacContent />
       </Modal>
-
-
-    </MenuBarContainer>
     </>
   );
 }

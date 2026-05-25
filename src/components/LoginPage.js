@@ -183,7 +183,7 @@ function LoginPage({ onLogin }) {
             placeholder={
               isLocked
                 ? `Locked for ${lockTime} seconds...`
-                : 'Touch ID or enter Password'
+                : 'Touch ID or enter Password (1234)'
             }
             value={password}
             onChange={(e) => setPassword(e.target.value)}

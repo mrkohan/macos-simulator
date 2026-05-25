@@ -1,7 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import Draggable from 'react-draggable';
+import { getWindowDefaults } from '../utils/windowDefaults';
 
+const MIN_WIDTH = 320;
+const MIN_HEIGHT = 200;
+const MENU_BAR_HEIGHT = 27;
+const MAX_WIDTH = () => window.innerWidth - 40;
+const MAX_HEIGHT = () => window.innerHeight - 80;
+const MAXIMIZED_HEIGHT = () => window.innerHeight - MENU_BAR_HEIGHT;
 
 const WindowContainer = styled.div`
   width: ${(props) => props.width}px;
@@ -17,8 +24,14 @@ const WindowContainer = styled.div`
   display: ${(props) => (props.minimized ? 'none' : 'flex')};
   flex-direction: column;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  transition: ${(props) => (props.isMaximized ? 'none' : 'width 0.2s, height 0.2s')};
-  z-index: 1001;
+  transition: ${(props) =>
+    props.isResizing || props.isMaximized ? 'none' : 'width 0.2s, height 0.2s'};
+`;
+
+const WindowWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
 `;
 
 const TitleBar = styled.div`
@@ -53,34 +66,139 @@ const TitleText = styled.div`
 `;
 
 const ContentArea = styled.div`
-  flex-grow: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background-color: white;
+  position: relative;
 `;
 
 const ResizeHandle = styled.div`
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 15px;
-  height: 15px;
-  background-color: transparent;
+  width: 24px;
+  height: 24px;
+  cursor: se-resize;
+  z-index: 10;
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid ${(props) => (props.active ? '#007aff' : '#999')};
+    border-bottom: 2px solid ${(props) => (props.active ? '#007aff' : '#999')};
+    transition: border-color 0.15s;
+  }
+
+  &:hover::before {
+    border-color: #007aff;
+  }
+`;
+
+const ResizeOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
   cursor: se-resize;
 `;
 
-function Window({ appName, closeWindow, content }) {
-  const [isMaximized, setIsMaximized] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
-  const [isResizing, setIsResizing] = useState(false);
-  const [dragPosition, setDragPosition] = useState({ x: 100, y: 100 }); // Initial drag position
-
-
-  // Toggle minimize
-  const handleMinimize = () => {
-    setIsMinimized(!isMinimized);
+function clampSize(width, height) {
+  return {
+    width: Math.round(Math.min(MAX_WIDTH(), Math.max(MIN_WIDTH, width))),
+    height: Math.round(Math.min(MAX_HEIGHT(), Math.max(MIN_HEIGHT, height))),
   };
+}
 
-  // Toggle maximize
+function Window({
+  appName,
+  closeWindow,
+  content,
+  minimized = false,
+  isFocused = false,
+  zIndex = 1000,
+  zoomSignal = 0,
+  onMinimize,
+  onFocus,
+}) {
+  const defaults = getWindowDefaults(appName);
+  const nodeRef = useRef(null);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [dimensions, setDimensions] = useState({
+    width: defaults.width,
+    height: defaults.height,
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragPosition, setDragPosition] = useState(defaults.position);
+
+  const resizeSessionRef = useRef(null);
+
+  const stopResize = useCallback(() => {
+    if (!resizeSessionRef.current) return;
+    resizeSessionRef.current = null;
+    setIsResizing(false);
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  }, []);
+
+  const startResize = useCallback(
+    (e) => {
+      if (isMaximized) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      resizeSessionRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidth: dimensions.width,
+        startHeight: dimensions.height,
+      };
+
+      setIsResizing(true);
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'se-resize';
+    },
+    [dimensions.width, dimensions.height, isMaximized]
+  );
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handlePointerMove = (e) => {
+      const session = resizeSessionRef.current;
+      if (!session) return;
+
+      const deltaX = e.clientX - session.startX;
+      const deltaY = e.clientY - session.startY;
+      setDimensions(
+        clampSize(session.startWidth + deltaX, session.startHeight + deltaY)
+      );
+    };
+
+    const endResize = () => stopResize();
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', endResize, { capture: true });
+    document.addEventListener('pointercancel', endResize, { capture: true });
+    window.addEventListener('blur', endResize);
+
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', endResize, { capture: true });
+      document.removeEventListener('pointercancel', endResize, { capture: true });
+      window.removeEventListener('blur', endResize);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing, stopResize]);
+
+  const handleMinimize = () => onMinimize?.();
+
   const handleMaximize = () => {
     if (isMaximized) {
       setDragPosition(dragPosition);
@@ -90,73 +208,58 @@ function Window({ appName, closeWindow, content }) {
     setIsMaximized(!isMaximized);
   };
 
-  // Handle close window
-  const handleClose = () => {
-    closeWindow(appName);
-  };
-
-  // Start resizing
-  const startResize = (e) => {
-    setIsResizing(true);
-    e.preventDefault();
-  };
-
- // Handle resizing
-  const handleResize = (e) => {
-    if (isResizing) {
-      const newWidth = e.clientX - e.target.offsetParent.offsetLeft;
-      const newHeight = e.clientY - e.target.offsetParent.offsetTop;
-      if (newWidth > 200 && newHeight > 150) {
-        setDimensions({ width: newWidth, height: newHeight });
-      }
-    }
-  };
-
-  // Stop resizing when mouse is released
-  const stopResize = () => {
-    setIsResizing(false);
-  };
-
-  // Add global event listener for mouseup to stop resizing
   useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleResize);
-      document.addEventListener('mouseup', stopResize);
-    } else {
-      document.removeEventListener('mousemove', handleResize);
-      document.removeEventListener('mouseup', stopResize);
+    if (zoomSignal > 0 && isFocused) {
+      setIsMaximized((wasMax) => {
+        if (!wasMax) setDragPosition({ x: 0, y: 0 });
+        return !wasMax;
+      });
     }
+  }, [zoomSignal, isFocused]);
 
-    return () => {
-      document.removeEventListener('mousemove', handleResize);
-      document.removeEventListener('mouseup', stopResize);
-    };
-  }, [isResizing]);
+  const handleClose = () => closeWindow(appName);
 
   return (
-    <Draggable
-    handle=".title-bar"
-    position={isMaximized ? { x: 0, y: 0 } : dragPosition}
-    onStop={(e, data) => setDragPosition({ x: data.x, y: data.y })}
-    disabled={isMaximized}>
-       <WindowContainer
-        width={isMaximized ? window.innerWidth : dimensions.width}
-        height={isMaximized ? window.innerHeight : dimensions.height}
-        minimized={isMinimized}
-        isMaximized={isMaximized}
+    <>
+      {isResizing && <ResizeOverlay onPointerUp={stopResize} />}
+      <Draggable
+        nodeRef={nodeRef}
+        handle=".title-bar"
+        position={isMaximized ? { x: 0, y: 0 } : dragPosition}
+        onStart={() => onFocus?.()}
+        onStop={(e, data) => setDragPosition({ x: data.x, y: data.y })}
+        disabled={isMaximized || isResizing}
       >
-        <TitleBar className="title-bar">
-          <WindowControls>
-            <ControlButton color="red" onClick={handleClose} /> {/* Close */}
-            <ControlButton color="yellow" onClick={handleMinimize} /> {/* Minimize */}
-            <ControlButton color="green" onClick={handleMaximize} /> {/* Maximize */}
-          </WindowControls>
-          <TitleText>{appName}</TitleText>
-        </TitleBar>
-        <ContentArea>{content}</ContentArea>
-        {!isMaximized && <ResizeHandle onMouseDown={startResize} />} {/* Resize handle starts resizing */}
-      </WindowContainer>
-    </Draggable>
+        <WindowWrapper
+          ref={nodeRef}
+          style={{ zIndex }}
+          onMouseDownCapture={() => onFocus?.()}
+        >
+        <WindowContainer
+          data-app-window
+          width={isMaximized ? window.innerWidth : dimensions.width}
+          height={isMaximized ? MAXIMIZED_HEIGHT() : dimensions.height}
+          minimized={minimized}
+          isMaximized={isMaximized}
+          isResizing={isResizing}
+          isFocused={isFocused}
+        >
+          <TitleBar className="title-bar">
+            <WindowControls>
+              <ControlButton color="red" onClick={handleClose} />
+              <ControlButton color="yellow" onClick={handleMinimize} />
+              <ControlButton color="green" onClick={handleMaximize} />
+            </WindowControls>
+            <TitleText>{appName}</TitleText>
+          </TitleBar>
+          <ContentArea>{content}</ContentArea>
+          {!isMaximized && (
+            <ResizeHandle active={isResizing} onPointerDown={startResize} />
+          )}
+        </WindowContainer>
+        </WindowWrapper>
+      </Draggable>
+    </>
   );
 }
 

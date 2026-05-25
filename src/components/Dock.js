@@ -56,6 +56,18 @@ const DockIconContainer = styled.div`
   }
 `;
 
+const DockDot = styled.div`
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  opacity: ${(props) => (props.minimized ? 0.45 : 1)};
+`;
+
 // Custom interpolation function
 function customInterpolate(input, output) {
   return (x) => {
@@ -72,7 +84,7 @@ function customInterpolate(input, output) {
   };
 }
 
-function Dock() {
+function Dock({ openWindow, windows = [] }) {
   const [mouseX, setMouseX] = useState(null);
   const [hoveredIcon, setHoveredIcon] = useState(null);
   const dockRef = useRef();
@@ -116,18 +128,24 @@ function Dock() {
   };
 
   const icons = [
-    { src: "/icons/finder.png", alt: "Finder" },
-    { src: "/icons/maps.png", alt: "Maps" },
-    { src: "/icons/calendar.png", alt: "Calendar" },
-    { src: "/icons/contacts.png", alt: "Contacts" },
-    { src: "/icons/message.png", alt: "iMessage" },
-    { src: "/icons/safari.png", alt: "Safari" },
-    { src: "/icons/facetime.png", alt: "Facetime" },
-    { src: "/icons/vscode.png", alt: "VSCode" },
-    { src: "/icons/chrome.png", alt: "Chrome" },
-    { src: "/icons/spotify.png", alt: "Spotify" },
-    { src: "/icons/bin.png", alt: "Bin" },
+    { src: "/icons/finder.png", alt: "Finder", appName: "Finder" },
+    { src: "/icons/maps.png", alt: "Maps", appName: "Maps" },
+    { src: "/icons/calendar.png", alt: "Calendar", appName: "Calendar" },
+    { src: "/icons/contacts.png", alt: "Contacts", appName: "Contacts" },
+    { src: "/icons/message.png", alt: "iMessage", appName: "Messages" },
+    { src: "/icons/safari.png", alt: "Safari", appName: "Safari" },
+    { src: "/icons/facetime.png", alt: "Facetime", appName: "FaceTime" },
+    { src: "/icons/vscode.png", alt: "VSCode", appName: "VSCode" },
+    { src: "/icons/chrome.png", alt: "Chrome", appName: "Chrome" },
+    { src: "/icons/spotify.png", alt: "Spotify", appName: "Spotify" },
+    { src: "/icons/bin.png", alt: "Bin", appName: "Bin" },
   ];
+
+  const handleIconClick = (appName) => {
+    if (appName) {
+      openWindow(appName);
+    }
+  };
 
   return (
     <DockContainer>
@@ -140,15 +158,21 @@ function Dock() {
             iconSize = calculateIconSize(iconCenterX);
           }
 
+          const openWin = icon.appName
+            ? windows.find((w) => w.appName === icon.appName)
+            : null;
+
           return (
             <DockIconContainer
               key={index}
+              onClick={() => handleIconClick(icon.appName)}
               onMouseEnter={() => handleMouseEnterIcon(index)}
               onMouseLeave={handleMouseLeaveIcon}
               isHovered={hoveredIcon === index}
               iconSize={iconSize}
             >
               <img src={icon.src} alt={icon.alt} />
+              {openWin && <DockDot minimized={openWin.minimized} />}
               <div className="tooltip">{icon.alt}</div>
             </DockIconContainer>
           );

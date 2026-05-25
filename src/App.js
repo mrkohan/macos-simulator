@@ -23,7 +23,7 @@ function App() {
       {showSplash ? (
         <SplashScreen onComplete={handleSplashComplete} />
       ) : isLoggedIn ? (
-        <Desktop />
+        <Desktop onLogOut={() => setIsLoggedIn(false)} />
       ) : (
         <LoginPage onLogin={handleLogin} />
       )}
