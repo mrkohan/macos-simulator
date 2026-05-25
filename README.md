@@ -4,7 +4,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 ## Demo
 
-Check out the live demo of the MacOS Simulator [here](https://reactos.kohan.com.tr).
+Check out the live demo of the MacOS Simulator [here](https://macos-simulator-three.vercel.app).
 
 The login password is : 1234
 
